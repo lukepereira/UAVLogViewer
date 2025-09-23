@@ -772,7 +772,7 @@ export default {
                 newData.y.push(data.y[i])
                 lastx = data.x[i]
             }
-            if (totalGaps > (totalPoints / 2)) {
+            if (totalGaps > (totalPoints / 2) || totalPoints < 100) {
                 newData.isSwissCheese = true
             }
             return newData
