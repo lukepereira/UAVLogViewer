@@ -16,6 +16,7 @@
         <AttitudeViewer @close="state.showAttitude = false" v-if="state.showAttitude"></AttitudeViewer>
         <MagFitTool     @close="state.showMagfit = false" v-if="state.showMagfit"></MagFitTool>
         <EkfHelperTool  @close="state.showEkfHelper = false" v-if="state.showEkfHelper"></EkfHelperTool>
+        <AIChatWidget @close="state.showAIChat = false" v-if="state.showAIChat"></AIChatWidget>
         <div class="container-fluid" style="height: 100%; overflow: hidden;">
 
             <sidebar/>
@@ -60,6 +61,7 @@ import { MavlinkDataExtractor } from '../tools/mavlinkDataExtractor'
 import { DjiDataExtractor } from '../tools/djiDataExtractor'
 import MagFitTool from '@/components/widgets/MagFitTool.vue'
 import EkfHelperTool from '@/components/widgets/EkfHelperTool.vue'
+import AIChatWidget from '@/components/widgets/AIChatWidget.vue'
 import Vue from 'vue'
 
 export default {
@@ -239,7 +241,8 @@ export default {
         DeviceIDViewer,
         AttitudeViewer,
         MagFitTool,
-        EkfHelperTool
+        EkfHelperTool,
+        AIChatWidget
     },
     computed: {
         mapOk () {
