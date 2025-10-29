@@ -100,6 +100,11 @@
                             <input type="checkbox" v-model="state.showDeviceIDs">
                             <a class="check-font">  Sensors </a>
                         </label>
+                        <label>
+                            <i class="fa fa-comments circle"></i>
+                            <input type="checkbox" v-model="state.showAIChat">
+                            <a class="check-font"> AI Assistant </a>
+                        </label>
                     </div>
                     <div v-if="state.files" class="show-hide">
                         <ul class="files-list">
