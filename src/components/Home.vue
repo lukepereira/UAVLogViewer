@@ -84,7 +84,7 @@ export default {
         }
     },
     methods: {
-        extractFlightData () {
+        async extractFlightData () {
             if (this.dataExtractor === null) {
                 if (this.state.logType === 'tlog') {
                     this.dataExtractor = MavlinkDataExtractor
@@ -208,6 +208,9 @@ export default {
                     this.state.showMap = true
                 }
             }
+
+            await this.setSessionIdentifier()
+            await this.uploadLogData()
         },
 
         generateColorMMap () {
@@ -228,6 +231,42 @@ export default {
                 this.state.colors.push(new Color(rgba[0], rgba[1], rgba[2]))
                 // this.translucentColors.push(new Cesium.Color(rgba[0], rgba[1], rgba[2], 0.1))
             }
+        },
+
+        async setSessionIdentifier () {
+            // TODO: only include relevant and stable state data
+            const logData = {
+                ...this.state
+            }
+            const json = JSON.stringify(logData)
+            const buffer = new TextEncoder().encode(json)
+            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer)
+            const hashArray = Array.from(new Uint8Array(hashBuffer))
+            const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+            this.state.sessionIdentifier = hash
+            console.log('🆔 AI Chat Identifier set to:', this.state.sessionIdentifier)
+        },
+
+        async uploadLogData () {
+            // TODO: only include relevant and stable state data
+            const logData = {
+                ...this.state
+            }
+            const sessionIdentifier = this.state.sessionIdentifier || 'unknown'
+            const fileName = `uav_log_${sessionIdentifier}.json`
+            const jsonString = JSON.stringify(logData)
+            const blob = new Blob([jsonString], { type: 'application/json' })
+            const file = new File([blob], fileName, { type: 'application/json' })
+            const formData = new FormData()
+            formData.append('files', file)
+            const response = await fetch('http://localhost:8001/upload', {
+                method: 'POST',
+                body: formData
+            })
+            if (!response.ok) {
+                throw new Error('Upload failed')
+            }
+            console.log('✅ Uploaded successfully')
         }
     },
     components: {
