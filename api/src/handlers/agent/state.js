@@ -43,19 +43,21 @@ export const LogAnalysisStateAnnotation = Annotation.Root({
   actions: Annotation({
     reducer: (x, y) => ({ ...x, ...y }),
   }),
-  logData: Annotation(),
-  logDocs: Annotation(),
-  logStats: Annotation(),
+  logContext: Annotation(),
 });
 
 export const LogAnalysisActions = z.enum([
-  'trajectoriesAnalysis',
-  'systemTimeAnalysis',
-  'gpsAnalysis',
-  'heartbeatAnalysis',
-  'attitudeAnalysis',
-  'paramValueAnalysis',
-  'statusTextAnalysis',
+  'inertialMotion',
+  'gpsNavigation',
+  'controlAutopilot',
+  'actuatorsMotors',
+  'airEnvironment',
+  'simulationSitl',
+  'communicationTelemetry',
+  'loggingReplay',
+  'powerBattery',
+  'camerasSensors',
+  'safetyMisc',
 ]);
 
 export const LogAnalysisAnnotation = z.object(
