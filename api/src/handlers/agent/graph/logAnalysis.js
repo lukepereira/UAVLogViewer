@@ -1,7 +1,7 @@
 import { END, START, StateGraph, Send } from '@langchain/langgraph';
 import { getLLMClient } from '../../../clients/langgraph.js';
 import { LogAnalysisStateAnnotation, LogAnalysisAnnotation } from '../state.js';
-import { getMessagesString, getLogDataForSession } from '../utils.js';
+import { getMessagesString, getLogDataForSession, getLogStatsForSession } from '../utils.js';
 import { getAnalysisOrchestratorPrompt, getLogAnalysisPrompt } from '../prompts/logAnalysis.js';
 import {
   getSystemTimeDocumentation,
@@ -41,17 +41,24 @@ const logAnalysisOrchestrator = async state => {
   return { actions: responseMessage };
 };
 
-const genericAnalysis = async (messages, logData, logDocs) => {
+const genericAnalysis = async state => {
+  const { messages, logData, logDocs, logStats } = state;
   const maxLogLimit = 128000;
   const formattedMessages = getMessagesString(messages);
-  let logDataString = JSON.stringify(logData);
+  const logStatsString = JSON.stringify(logStats);
 
   // Truncate log data if too large
+  let logDataString = JSON.stringify(logData);
   if (logDataString.length > maxLogLimit) {
     logDataString = logDataString.slice(0, maxLogLimit);
     logDataString += '\n... [truncated due to size]';
   }
-  const logAnalysisPrompt = getLogAnalysisPrompt(formattedMessages, logDataString, logDocs);
+  const logAnalysisPrompt = getLogAnalysisPrompt(
+    formattedMessages,
+    logDataString,
+    logStatsString,
+    logDocs,
+  );
   const logAnalysisMessages = [
     {
       role: 'system',
@@ -65,50 +72,43 @@ const genericAnalysis = async (messages, logData, logDocs) => {
 
 const trajectoriesAnalysis = async state => {
   console.debug('trajectoriesAnalysis node invoked');
-  const { messages, logData, logDocs } = state;
-  const responseMessage = await genericAnalysis(messages, logData, logDocs);
+  const responseMessage = await genericAnalysis(state);
   return { responses: [{ ...responseMessage, node: 'trajectoriesAnalysis' }] };
 };
 
 const systemTimeAnalysis = async state => {
   console.debug('systemTimeAnalysis node invoked');
-  const { messages, logData, logDocs } = state;
-  const responseMessage = await genericAnalysis(messages, logData, logDocs);
+  const responseMessage = await genericAnalysis(state);
   return { responses: [{ ...responseMessage, node: 'systemTimeAnalysis' }] };
 };
 
 const gpsAnalysis = async state => {
   console.debug('gpsAnalysis node invoked');
-  const { messages, logData, logDocs } = state;
-  const responseMessage = await genericAnalysis(messages, logData, logDocs);
+  const responseMessage = await genericAnalysis(state);
   return { responses: [{ ...responseMessage, node: 'gpsAnalysis' }] };
 };
 
 const heartbeatAnalysis = async state => {
   console.debug('heartbeatAnalysis node invoked');
-  const { messages, logData, logDocs } = state;
-  const responseMessage = await genericAnalysis(messages, logData, logDocs);
+  const responseMessage = await genericAnalysis(state);
   return { responses: [{ ...responseMessage, node: 'heartbeatAnalysis' }] };
 };
 
 const attitudeAnalysis = async state => {
   console.debug('attitudeAnalysis node invoked');
-  const { messages, logData, logDocs } = state;
-  const responseMessage = await genericAnalysis(messages, logData, logDocs);
+  const responseMessage = await genericAnalysis(state);
   return { responses: [{ ...responseMessage, node: 'attitudeAnalysis' }] };
 };
 
 const paramValueAnalysis = async state => {
   console.debug('paramValueAnalysis node invoked');
-  const { messages, logData, logDocs } = state;
-  const responseMessage = await genericAnalysis(messages, logData, logDocs);
+  const responseMessage = await genericAnalysis(state);
   return { responses: [{ ...responseMessage, node: 'paramValueAnalysis' }] };
 };
 
 const statusTextAnalysis = async state => {
   console.debug('statusTextAnalysis node invoked');
-  const { messages, logData, logDocs } = state;
-  const responseMessage = await genericAnalysis(messages, logData, logDocs);
+  const responseMessage = await genericAnalysis(state);
   return { responses: [{ ...responseMessage, node: 'statusTextAnalysis' }] };
 };
 
@@ -140,6 +140,16 @@ const routeOrchestratorOutput = async state => {
     console.error('Error reading log file:', error);
     return {};
   }
+
+  // Read log stats file data from disk storage
+  let fullLogStats;
+  try {
+    fullLogStats = getLogStatsForSession(sessionId);
+  } catch (error) {
+    console.error('Error reading log stats file:', error);
+    return {};
+  }
+
   // Route all actions above threshold, prepare relevant log data and documentation
   // TODO: DRY this up
   return Object.entries(actions).reduce((sends, [action, score]) => {
@@ -148,30 +158,37 @@ const routeOrchestratorOutput = async state => {
         const logData = {
           ...fullLogData?.trajectories,
         };
+        const logStats = fullLogStats?.trajectories;
         const logDocs = getTrajectoriesDocumentation();
-        sends.push(new Send('trajectoriesAnalysis', { messages, logData, logDocs }));
+        sends.push(new Send('trajectoriesAnalysis', { messages, logData, logDocs, logStats }));
       }
       if (action === 'systemTimeAnalysis') {
         const logData = {
           ...fullLogData?.messages?.SYSTEM_TIME,
         };
+        const logStats = fullLogStats?.SYSTEM_TIME;
         const logDocs = getSystemTimeDocumentation();
-        sends.push(new Send('systemTimeAnalysis', { messages, logData, logDocs }));
+        sends.push(new Send('systemTimeAnalysis', { messages, logData, logDocs, logStats }));
       }
       if (action === 'gpsAnalysis') {
         const logData = {
           ...fullLogData?.messages?.GLOBAL_POSITION_INT,
           ...fullLogData?.messages?.GPS_RAW_INT,
         };
+        const logStats = {
+          ...fullLogStats?.GPS_RAW_INT,
+          ...fullLogStats?.GLOBAL_POSITION_INT,
+        };
         const logDocs = getGpsDocumentation();
-        sends.push(new Send('gpsAnalysis', { messages, logData, logDocs }));
+        sends.push(new Send('gpsAnalysis', { messages, logData, logDocs, logStats }));
       }
       if (action === 'heartbeatAnalysis') {
         const logData = {
           ...fullLogData?.messages?.HEARTBEAT,
         };
+        const logStats = fullLogStats?.HEARTBEAT;
         const logDocs = getHeartbeatDocumentation();
-        sends.push(new Send('heartbeatAnalysis', { messages, logData, logDocs }));
+        sends.push(new Send('heartbeatAnalysis', { messages, logData, logDocs, logStats }));
       }
       if (action === 'attitudeAnalysis') {
         const logData = {
@@ -180,22 +197,30 @@ const routeOrchestratorOutput = async state => {
           ...fullLogData?.messages?.AHRS2,
           ...fullLogData?.messages?.AHRS3,
         };
+        const logStats = {
+          ...fullLogStats?.ATTITUDE,
+          ...fullLogStats?.AHRS,
+          ...fullLogStats?.AHRS2,
+          ...fullLogStats?.AHRS3,
+        };
         const logDocs = getAttitudeDocumentation();
-        sends.push(new Send('attitudeAnalysis', { messages, logData, logDocs }));
+        sends.push(new Send('attitudeAnalysis', { messages, logData, logDocs, logStats }));
       }
       if (action === 'paramValueAnalysis') {
         const logData = {
           ...fullLogData?.messages?.PARAM_VALUE,
         };
+        const logStats = fullLogStats?.PARAM_VALUE;
         const logDocs = getParamValueDocumentation();
-        sends.push(new Send('paramValueAnalysis', { messages, logData, logDocs }));
+        sends.push(new Send('paramValueAnalysis', { messages, logData, logDocs, logStats }));
       }
       if (action === 'statusTextAnalysis') {
         const logData = {
           ...fullLogData?.messages?.STATUSTEXT,
         };
+        const logStats = fullLogStats?.STATUSTEXT;
         const logDocs = getStatusTextDocumentation();
-        sends.push(new Send('statusTextAnalysis', { messages, logData, logDocs }));
+        sends.push(new Send('statusTextAnalysis', { messages, logData, logDocs, logStats }));
       }
     }
     return sends;

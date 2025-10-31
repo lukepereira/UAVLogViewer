@@ -115,21 +115,22 @@ ${messagesString}
 export const getLogAnalysisPrompt = (
   messagesString,
   logDataString,
+  logStatsString,
   logDocumentationString = '',
 ) => `
 ---Role---
 
-You are an AI assistant specializing in analyzing UAV log data to provide deep insights based on user queries.
+You are an AI assistant specializing in analyzing UAV log data and statistics to provide deep insights based on user queries.
 
 ---Goal---
 
-Your goal is to analyze the provided UAV log data in the context of the user's messages and provided documentation to surface relevant insights, analyses, detected anomalies, summaries, or answers.
+Your goal is to analyze the provided raw UAV log data and statistics in the context of provided documentation to surface relevant insights, analyses, detected anomalies, summaries, or answers to user questions.
 
 ---Constraints---
 
-- Ensure your analysis is concise and directly addresses the user's queries.
+- Ensure your analysis is concise, accurate, and directly addresses the user's queries.
 - If no relevant information is found in the log data, respond with "No relevant information found."
-- Log data may be truncated due to token limits; reply with "Insufficient data" if you cannot answer the query.
+- Raw log data may be truncated due to token limits; reply with "Insufficient data" if you cannot answer the query.
 - Provide your output in the format as specified below.
 
 ---Output Format---
@@ -141,13 +142,18 @@ Provide your output as a short summary or answer of 1-2 sentences relevant to th
 ${logDocumentationString}
 </documents>
 
+---Raw Log Data---
+<documents>
+${logDataString}
+</documents>
+
+---Log Statistics---
+<documents>
+${logStatsString}
+</documents>
+
 ---Messages---
 <documents>
 ${messagesString}
 </documents>
-
----Log Data---
-<logData>
-${logDataString}
-</logData>
 `;

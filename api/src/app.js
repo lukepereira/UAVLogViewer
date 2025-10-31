@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import multer from 'multer';
 import fs from 'fs';
 import { Agent } from './handlers/agent/chat.js';
-import { FileManager } from './handlers/fileManager.js';
+import { LogManager } from './handlers/logManager.js';
 
 dotenv.config();
 const app = express();
@@ -36,8 +36,8 @@ app.options('*', cors(corsOptions));
 app.post('/chat', async (req, res, next) => {
   Agent.chat(req.body, res, next);
 });
-app.post('/upload', upload.array('files'), async (req, res) => {
-  FileManager.upload(req, res);
+app.post('/upload-log', upload.array('files'), async (req, res) => {
+  LogManager.uploadAndProcessLog(req, res);
 });
 
 app.listen(port, () => {

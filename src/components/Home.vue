@@ -209,7 +209,10 @@ export default {
                 }
             }
 
-            if (this.state.trajectories !== undefined && this.state.messages !== undefined) {
+            if (
+                this.state.trajectories && Object.keys(this.state.trajectories).length > 0 &&
+                this.state.messages !== null && Object.keys(this.state.messages).length > 0
+            ) {
                 const logData = {
                     trajectories: this.state.trajectories,
                     messages: this.state.messages
@@ -258,7 +261,7 @@ export default {
                 const file = new File([blob], fileName, { type: 'application/json' })
                 const formData = new FormData()
                 formData.append('files', file)
-                await fetch('http://localhost:3000/upload', {
+                await fetch('http://localhost:3000/upload-log', {
                     method: 'POST',
                     body: formData
                 })
