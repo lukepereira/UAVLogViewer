@@ -45,6 +45,7 @@ export const LogAnalysisStateAnnotation = Annotation.Root({
   }),
   logData: Annotation(),
   logDocs: Annotation(),
+  logStats: Annotation(),
 });
 
 export const LogAnalysisActions = z.enum([

@@ -21,7 +21,7 @@ export const getMessagesString = (messages, maxMessages = 100) => {
 
 export const getLogDataForSession = sessionId => {
   // Read log file data from disk storage
-  const filename = fs.readdirSync('./uploads').find(name => name.includes(sessionId));
+  const filename = fs.readdirSync('./uploads').find(name => name === `uav_log_${sessionId}.json`);
 
   if (!filename) {
     throw new Error(`Log file for sessionId ${sessionId} not found.`);
@@ -29,6 +29,20 @@ export const getLogDataForSession = sessionId => {
   const filePath = path.resolve('./uploads', filename);
   const fullLogDataRaw = fs.readFileSync(filePath, 'utf-8');
   return JSON.parse(fullLogDataRaw);
+};
+
+export const getLogStatsForSession = sessionId => {
+  // Read log stats file data from disk storage
+  const statsFilename = fs
+    .readdirSync('./uploads')
+    .find(name => name === `stats_uav_log_${sessionId}.json`);
+
+  if (!statsFilename) {
+    throw new Error(`Log stats file for sessionId ${sessionId} not found.`);
+  }
+  const statsFilePath = path.resolve('./uploads', statsFilename);
+  const fullLogStatsRaw = fs.readFileSync(statsFilePath, 'utf-8');
+  return JSON.parse(fullLogStatsRaw);
 };
 
 export const saveGraphImage = async (graph, outfile = 'graph_image.png') => {
