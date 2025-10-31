@@ -1,0 +1,54 @@
+import path from 'path';
+import fs from 'fs';
+import * as fsPromises from 'node:fs/promises';
+
+export const getMessagesString = (messages, maxMessages = 100) => {
+  if (!messages || !Array.isArray(messages)) {
+    return '';
+  }
+  const limitedMessages = maxMessages ? messages.slice(0, maxMessages) : messages;
+  return limitedMessages
+    .map(message => {
+      if (message.role === 'user') {
+        return `User: ${message.content}`;
+      } else if (message.role === 'system' || message.role === 'assistant') {
+        return `Assistant: ${message.content}`;
+      }
+      return '';
+    })
+    .join('\n');
+};
+
+export const getLogDataForSession = sessionId => {
+  // Read log file data from disk storage
+  const filename = fs.readdirSync('./uploads').find(name => name.includes(sessionId));
+
+  if (!filename) {
+    throw new Error(`Log file for sessionId ${sessionId} not found.`);
+  }
+  const filePath = path.resolve('./uploads', filename);
+  const fullLogDataRaw = fs.readFileSync(filePath, 'utf-8');
+  return JSON.parse(fullLogDataRaw);
+};
+
+export const saveGraphImage = async (graph, outfile = 'graph_image.png') => {
+  console.log(`Saving graph image to ${outfile}`);
+  const drawableGraph = await graph.getGraphAsync({ xray: false });
+  const drawableGraphXray = await graph.getGraphAsync({ xray: true });
+
+  const image1 = await drawableGraph.drawMermaidPng({
+    withStyles: true,
+    curveStyle: 'linear',
+    backgroundColor: 'white',
+  });
+  const image2 = await drawableGraphXray.drawMermaidPng({
+    withStyles: true,
+    curveStyle: 'linear',
+    backgroundColor: 'white',
+  });
+
+  const imageBuffer = new Uint8Array(await image1.arrayBuffer());
+  await fsPromises.writeFile(outfile, imageBuffer);
+  const imageBufferXray = new Uint8Array(await image2.arrayBuffer());
+  await fsPromises.writeFile(outfile.replace('.png', '_xray.png'), imageBufferXray);
+};

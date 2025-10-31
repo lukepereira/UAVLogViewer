@@ -19,14 +19,13 @@
                 <h6>Chat</h6>
                 <div class="chat-container">
                     <deep-chat
-                        :textInput.prop="{
-                            placeholder: { text: 'Ask me about the UAV log data'}
-                        }"
                         :history.prop="history"
                         :connect.prop="{
-                            url: 'http://localhost:8001/chat',
+                            url: 'http://localhost:3000/chat',
                             method: 'POST',
-                            additionalBodyProps: { chatIdentifier: state.sessionIdentifier }
+                            additionalBodyProps: {
+                                sessionId: state.sessionIdentifier
+                            }
                         }"
                     />
                 </div>
@@ -57,7 +56,7 @@ export default {
             top: 50,
             isLoading: false,
             history: [
-                { role: 'ai', text: 'Hi, how can I help you?' }
+                { role: 'ai', text: 'Hi, I am your AI assistant. Ask me anything about the UAV log data!' }
             ]
         }
     }
