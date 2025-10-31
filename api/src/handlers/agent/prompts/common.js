@@ -1,0 +1,2 @@
+export const noDataFoundMessage =
+  'I am sorry but I am unable to answer this question given the provided data.';

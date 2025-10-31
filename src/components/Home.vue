@@ -209,8 +209,14 @@ export default {
                 }
             }
 
-            await this.setSessionIdentifier()
-            await this.uploadLogData()
+            if (this.state.trajectories !== undefined && this.state.messages !== undefined) {
+                const logData = {
+                    trajectories: this.state.trajectories,
+                    messages: this.state.messages
+                }
+                await this.setSessionIdentifier(logData)
+                await this.uploadLogData(logData)
+            }
         },
 
         generateColorMMap () {
@@ -233,11 +239,7 @@ export default {
             }
         },
 
-        async setSessionIdentifier () {
-            // TODO: only include relevant and stable state data
-            const logData = {
-                ...this.state
-            }
+        async setSessionIdentifier (logData) {
             const json = JSON.stringify(logData)
             const buffer = new TextEncoder().encode(json)
             const hashBuffer = await crypto.subtle.digest('SHA-256', buffer)
@@ -247,26 +249,23 @@ export default {
             console.log('🆔 AI Chat Identifier set to:', this.state.sessionIdentifier)
         },
 
-        async uploadLogData () {
-            // TODO: only include relevant and stable state data
-            const logData = {
-                ...this.state
+        async uploadLogData (logData) {
+            try {
+                const sessionIdentifier = this.state.sessionIdentifier || 'unknown'
+                const fileName = `uav_log_${sessionIdentifier}.json`
+                const jsonString = JSON.stringify(logData)
+                const blob = new Blob([jsonString], { type: 'application/json' })
+                const file = new File([blob], fileName, { type: 'application/json' })
+                const formData = new FormData()
+                formData.append('files', file)
+                await fetch('http://localhost:3000/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                console.log('✅ Log data uploaded successfully.')
+            } catch (error) {
+                console.error('Error uploading log data:', error)
             }
-            const sessionIdentifier = this.state.sessionIdentifier || 'unknown'
-            const fileName = `uav_log_${sessionIdentifier}.json`
-            const jsonString = JSON.stringify(logData)
-            const blob = new Blob([jsonString], { type: 'application/json' })
-            const file = new File([blob], fileName, { type: 'application/json' })
-            const formData = new FormData()
-            formData.append('files', file)
-            const response = await fetch('http://localhost:8001/upload', {
-                method: 'POST',
-                body: formData
-            })
-            if (!response.ok) {
-                throw new Error('Upload failed')
-            }
-            console.log('✅ Uploaded successfully')
         }
     },
     components: {

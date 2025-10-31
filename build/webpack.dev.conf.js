@@ -18,7 +18,6 @@ const GitRevisionPlugin = require('git-revision-webpack-plugin')
 const gitRevisionPlugin = new GitRevisionPlugin()
 const ESLintPlugin = require('eslint-webpack-plugin');
 
-
 const HOST = '0.0.0.0'
 const PORT = process.env.PORT && Number(process.env.PORT)
 
@@ -48,7 +47,11 @@ const devWebpackConfig = merge(baseWebpackConfig, {
       ],
     },
     hot: true,
-    static: "./",
+    static: {
+      watch: {
+        ignored: path.resolve(__dirname, '../api/**')
+      },
+    },
     compress: true,
     host: HOST || config.dev.host,
     port: PORT || config.dev.port,

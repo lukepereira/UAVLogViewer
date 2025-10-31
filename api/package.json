@@ -7,7 +7,9 @@
   "scripts": {
     "start": "npx nodemon",
     "dev": "npx nodemon",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "prettier --write '**/*.{js,ts,json,jsx,tsx,mjs,cjs}'",
+    "format:check": "prettier --check '**/*.{js,ts,json,jsx,tsx,mjs,cjs}'"
   },
   "dependencies": {
     "@langchain/core": "^1.0.2",
@@ -17,7 +19,8 @@
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
