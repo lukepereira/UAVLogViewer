@@ -94,6 +94,7 @@ export default {
                     this.dataExtractor = DataflashDataExtractor
                 }
             }
+
             if ('FMTU' in this.state.messages && this.state.messages.FMTU.length === 0) {
                 this.state.processStatus = 'ERROR PARSING?'
             }
@@ -214,6 +215,7 @@ export default {
                 this.state.messages !== null && Object.keys(this.state.messages).length > 0
             ) {
                 const logData = {
+                    logType: this.state.logType,
                     trajectories: this.state.trajectories,
                     messages: this.state.messages
                 }
