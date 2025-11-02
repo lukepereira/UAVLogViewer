@@ -2,8 +2,8 @@
 
 ## Getting started
 
--   Follow `Build Setup` below to start UI
--   In a seperate terminal, start API: `cd api && npm start`
+-   Follow `Build Setup` below to start serving the UI
+-   In a seperate terminal, start the API: `cd api && npm start`
 -   Open chatbot from widgets:
     -   Load flight log data
     -   Click (...) to show widgets
@@ -14,15 +14,15 @@
 -   After uploading a UAV flight log or loading the sample:
     -   A stable sessionId is generated based on a hash of the log data
     -   Log data is uploaded as a multipart/form-data file to the server using the sessionId in the filename. See [log documentation](./api/src/handlers/agent/prompts/logDocumentation.js) for details on the available data fields
-    -   Both `*.tlog` MavLink files for and `*.bin` Dataflash files are supported and can be analyzed
-    -   After storing log data, a pre-processing step is triggered to collect statistical info and relevant documentation for the log file in the background and saved to the server. All numerical series within the above flight log data are analyzed using `simple-statistics`. Descriptional statistics include: count, mean, std, min, median, max, and variance. When associated time data is parsed, time-series statistics are included: slope (regression.m), intercept (regression.b) and r2.
--   On the UI, after click the chat widget a [deep-chat](https://deepchat.dev) session is started with a connection to the API using the current sessionId
+    -   Both Telemetry `*.tlog` log files and Dataflash `*.bin` files are supported and can be analyzed.
+    -   After storing log data, a pre-processing step is triggered to collect statistical info and relevant documentation for the log file and saved to the server asynchronously after receiving a log file. All available numerical series in the flight log data are analyzed using `simple-statistics`. Descriptional statistics include count, mean, std, min, median, max, and variance. When an associated time data is parsed, time-series statistics included are slope (regression.m), intercept (regression.b) and r2.
+-   On the UI, after clicking the chat widget, a [deep-chat](https://deepchat.dev) interface is opened with a connection to the API using the current sessionId
 -   Chat functionality includes:
-    -   Flight log analysis: Depending on the user query, the chat workflow identify all relevant subparts within the available log data to analyze. It then uses a MapReduce workflow to dispatch subagents to generate answers for each subpart, each using the minimal context of relevant subparts of log data, their documentation, and their precomputed statistics. Responses from subagents are then synthesized into a final response and returned to the user.
-    -   Query types: This workflow is designed to very simple while generalizing to both narrow queries (e.g. querying only one or two subparts of a log file) as well as high-level queries like anomaly detection (e.g. querying all subparts of the logfile).
-    -   Follow up question or clarification: After synthesizing a response, a relevant follow-up question to explore the data more or to further clarifiy user intent is appended to the output.
+    -   Flight log analysis: Depending on the user query, the chat workflow identifies relevant subparts in the available log data to analyze. It uses a MapReduce-like workflow to dispatch subagents to generate answers for each subpart, each using the minimal sufficent context composed of relevant log data subparts, their documentation, and their precomputed statistics. Responses from subagents are then synthesized into a final response and returned to the user.
+    -   Query types: This workflow is designed to very simple while generalizing to both narrow queries (e.g. examining only one or two subparts of a log file) as well as high-level queries like anomaly detection (e.g. examining all subparts of the logfile).
+    -   Follow up question or clarification: After synthesizing a response, a relevant follow-up question to explore the data more or to further clarifiy the user's intent is appended to the output.
     -   Help: Users can also ask questions about the chat functionality or the flight data schema, which is answered with documentation dynamically added to the prompt.
-    -   Out-of-domain questions: Questions outside of the domain of flight log data analyses or MAVLink documentation can still be answered, but will have a disclaimer string `[LLM: verify]` appended to the response.
+    -   Out-of-domain questions: Indirect questions outside of the domain of flight log data analyses or documentation can still be answered, but will have a disclaimer string `[LLM: verify]` appended to the response.
 
 ## Chat agent workflow
 
@@ -131,11 +131,16 @@ The nested `logAnalysis` orchestrator returns a [structured output](https://docs
 
 ## Future work
 
--   Add unit tests and E2E tests
--   Feature idea: analyze how flight data adheres to flight regulation codes
--   Store chat in local storage and include 'clear' button
--   Store log data in DB instead of disk storage on server
--   Fix security issues from adding new packages to repo with outdated dependencies
+-   Feature idea:
+    -   Analyze if flight data violates flight regulation rules/codes
+    -   Persist chat and include 'clear' button
+-   N2H Improvements:
+    -   Add unit tests and E2E tests
+    -   Validate log data during processing
+    -   Delete log data after some retention period, consider storing in database
+    -   Fix security issues from adding new packages to repo with outdated dependencies
+    -   Add more sophisticated time series statistical analysis
+    -   Provide specific expected/abnormal values for different data types in prompts
 
 ---
 
