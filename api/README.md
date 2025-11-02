@@ -43,7 +43,7 @@ The top-level orchestrator returns a [structured output](https://docs.langchain.
 }
 ```
 
-![Workflow: simple diagram](./api/agent_workflow.png 'Workflow: simple diagram')
+![Workflow: simple diagram](./agent_workflow.png 'Workflow: simple diagram')
 
 The nested `logAnalysis` subgraph follows a [routing pattern](https://docs.langchain.com/oss/python/langgraph/workflows-agents#routing) to dynamically process relevant and available subparts of the log data in parallel.
 
@@ -65,7 +65,7 @@ The nested `logAnalysis` orchestrator returns a [structured output](https://docs
 }
 ```
 
-![Workflow: full diagram](./api/agent_workflow_xray.png 'Workflow: full diagram')
+![Workflow: full diagram](./agent_workflow_xray.png 'Workflow: full diagram')
 
 (Blurry png seems to be a known issue with the typescript langgraph package)
 
