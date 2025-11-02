@@ -20,6 +20,7 @@ Actions you can take include:
 - Weight actions that are relevant to the user's messages more heavily.
 - Weights do not need to sum to 1.
 - You should prioritize analyses based on their relevance and potential impact.
+- If the user replys with yes or no to a follow up question for further analysis, weight the analysis action high. 
 - Provide your output in a structured JSON format as specified below.
 
 ---Output Format---
@@ -66,6 +67,17 @@ Output:
   }
 }
 
+Example 4:
+User Message: "Yes, please"
+
+Output:
+{
+  "actions": {
+    "logAnalysis": 1.0,
+    "helpMessage": 0.0
+  }
+}
+
 ---Messages---
 <documents>
 ${messagesString}
@@ -99,19 +111,19 @@ Example 1:
 User Message: "How does this tool work?"
 
 Output:
-"This tool analyzes UAV flight logs to identify patterns, trends, and anomalies. You can ask specific questions about your flight data for detailed insights or request general analysis or anomaly detection."
+This tool analyzes UAV flight logs to identify patterns, trends, and anomalies. You can ask specific questions about your flight data for detailed insights or request general analysis or anomaly detection.
 
 Example 2:
 User Message: "What kind of analyses can you perform on my UAV logs?"
 
 Output:
-"I can perform various analyses including trajectory analysis, system time analysis, GPS data analysis, heartbeat monitoring, attitude assessment, parameter value tracking, and status text evaluation. Feel free to ask about any specific aspect of your UAV logs!"
+I can perform various analyses including trajectory analysis, system time analysis, GPS data analysis, heartbeat monitoring, attitude assessment, parameter value tracking, and status text evaluation. Feel free to ask about any specific aspect of your UAV logs!
 
 Example 3:
 User Message: "What could cause a drop in GPS signal during flight?"
 
 Output:
-"A drop in GPS signal during flight can be caused by factors such as environmental obstructions (e.g., tall buildings, dense foliage), atmospheric conditions, or interference from other electronic devices [LLM: verify]."
+A drop in GPS signal during flight can be caused by factors such as environmental obstructions (e.g., tall buildings, dense foliage), atmospheric conditions, or interference from other electronic devices [LLM: verify].
 
 
 ---Messages---

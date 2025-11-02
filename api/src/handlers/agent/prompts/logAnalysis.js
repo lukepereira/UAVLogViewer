@@ -26,6 +26,7 @@ Available actions you can include and their descriptions:
 - Weight actions that are relevant to the user's messages more heavily.
 - Weight actions that are not available in the log data as 0.
 - Weights do not need to sum to 1.
+- if a user's last message is responding to a previous analysis question with "yes" or "no", weight actions relevant to the last assistant's follow up question.
 - A minimum threshold of 0.5 is required to select an action for analysis.
 - You should prioritize actions based on their relevance, availability and potential impact.
 - For high-level queries, provide a weight of 1 for all available actions.
@@ -140,14 +141,14 @@ Your goal is to analyze the provided UAV log data, statistics and documentation 
 
 ---Constraints---
 
-- Ensure your analysis is concise, accurate, and directly addresses the user's queries.
+- Ensure your analysis is concise and directly addresses the user's queries.
 - If no relevant information is found in the log data, respond with "No relevant information found."
 - Raw log data may be truncated due to token limits; reply with "Insufficient data" if you cannot answer the query.
 - Provide your output in the format as specified below.
 
 ---Output Format---
 
-Provide your output as a short summary or answer of 1-2 sentences relevant to the user's messages based on the log data provided.
+Provide your output as a short summary or answer of 1 sentence relevant to the user's messages based on the log data provided.
 
 ---Messages---
 <documents>
