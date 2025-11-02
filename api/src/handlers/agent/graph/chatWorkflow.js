@@ -37,7 +37,7 @@ const orchestrator = async state => {
   const responseMessage = await model
     .withStructuredOutput(ChatOrchestratorAnnotation)
     .invoke(orchestratorMessages);
-  console.log('Orchestrator actions:', responseMessage);
+  console.log('Orchestrator action scores:', responseMessage);
   return { actions: responseMessage };
 };
 

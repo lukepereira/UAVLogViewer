@@ -45,6 +45,23 @@ export const getLogStatsForSession = sessionId => {
   return JSON.parse(fullLogStatsRaw);
 };
 
+export const getAvailableMessageGroupsAndTypes = fullLogStats => {
+  const availableMessageGroupsAndTypes = {};
+  for (const group of Object.keys(fullLogStats)) {
+    availableMessageGroupsAndTypes[group] = {};
+    const messageTypes = Object.keys(fullLogStats[group]);
+    for (const messageType of messageTypes) {
+      availableMessageGroupsAndTypes[group][messageType] = fullLogStats[group][messageType].map(
+        item => ({
+          data_key: item.data_key,
+          description: item.description,
+        }),
+      );
+    }
+  }
+  return availableMessageGroupsAndTypes;
+};
+
 export const saveGraphImage = async (graph, outfile = 'graph_image.png') => {
   console.log(`Saving graph image to ${outfile}`);
   const drawableGraph = await graph.getGraphAsync({ xray: false });

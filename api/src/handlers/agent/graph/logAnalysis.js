@@ -1,23 +1,23 @@
 import { END, START, StateGraph, Send } from '@langchain/langgraph';
 import { getLLMClient } from '../../../clients/langgraph.js';
 import { LogAnalysisStateAnnotation, LogAnalysisAnnotation } from '../state.js';
-import { getMessagesString, getLogDataForSession, getLogStatsForSession } from '../utils.js';
+import { getMessagesString, getLogStatsForSession, getLogDataForSession } from '../utils.js';
 import { getAnalysisOrchestratorPrompt, getLogAnalysisPrompt } from '../prompts/logAnalysis.js';
-import {
-  getSystemTimeDocumentation,
-  getGpsDocumentation,
-  getHeartbeatDocumentation,
-  getAttitudeDocumentation,
-  getParamValueDocumentation,
-  getStatusTextDocumentation,
-  getTrajectoriesDocumentation,
-} from '../prompts/logDocumentation.js';
 
 /* Nodes */
 
 const logAnalysisOrchestrator = async state => {
   console.debug('logAnalysisOrchestrator node invoked');
-  const { messages } = state;
+  const { sessionId, messages } = state;
+
+  // Read log stats file data from disk storage
+  let fullLogStats;
+  try {
+    fullLogStats = getLogStatsForSession(sessionId);
+  } catch (error) {
+    console.error('Error reading log stats file:', error);
+    return {};
+  }
 
   // Prepare prompt for orchestrator
   const messagesString = getMessagesString(messages);
@@ -41,24 +41,44 @@ const logAnalysisOrchestrator = async state => {
   return { actions: responseMessage };
 };
 
-const genericAnalysis = async state => {
-  const { messages, logData, logDocs, logStats } = state;
-  const maxLogLimit = 128000;
+const genericAnalysis = async (state, additionalContext = undefined) => {
+  const { messages, logContext } = state;
   const formattedMessages = getMessagesString(messages);
-  const logStatsString = JSON.stringify(logStats);
 
-  // Truncate log data if too large
-  let logDataString = JSON.stringify(logData);
-  if (logDataString.length > maxLogLimit) {
-    logDataString = logDataString.slice(0, maxLogLimit);
-    logDataString += '\n... [truncated due to size]';
+  // Truncate raw data fields from log context to reduce size
+  const maxRawDataSize = 8000;
+  for (const messageType of Object.keys(logContext)) {
+    for (const item of logContext[messageType]) {
+      if (item.rawData) {
+        if (item.rawData.length > maxRawDataSize) {
+          item.rawData = item.rawData.slice(0, maxRawDataSize) + '\n... [truncated due to size]';
+        }
+      }
+    }
   }
-  const logAnalysisPrompt = getLogAnalysisPrompt(
-    formattedMessages,
-    logDataString,
-    logStatsString,
-    logDocs,
-  );
+  // If additionalContext is provided, merge it into logContext
+  if (additionalContext) {
+    for (const messageType of Object.keys(additionalContext)) {
+      if (!logContext[messageType]) {
+        logContext[messageType] = additionalContext[messageType];
+      } else {
+        logContext[messageType] = logContext[messageType].concat(additionalContext[messageType]);
+      }
+    }
+  }
+
+  // Truncate log context string if too large
+  let logContextString = JSON.stringify(logContext);
+  const maxContextLength = 256000;
+  if (logContextString.length > maxContextLength) {
+    console.debug(
+      `Truncating log context for analysis due to size: ${logContextString.length} > ${maxContextLength}`,
+    );
+    logContextString = logContextString.slice(0, maxContextLength);
+    logContextString += '\n... [truncated due to size]';
+  }
+
+  const logAnalysisPrompt = getLogAnalysisPrompt(formattedMessages, logContextString);
   const logAnalysisMessages = [
     {
       role: 'system',
@@ -70,46 +90,92 @@ const genericAnalysis = async state => {
   return responseMessage;
 };
 
-const trajectoriesAnalysis = async state => {
-  console.debug('trajectoriesAnalysis node invoked');
+const inertialMotion = async state => {
+  console.debug('inertialMotion node invoked');
   const responseMessage = await genericAnalysis(state);
-  return { responses: [{ ...responseMessage, node: 'trajectoriesAnalysis' }] };
+  return { responses: [{ ...responseMessage, node: 'inertialMotion' }] };
 };
 
-const systemTimeAnalysis = async state => {
-  console.debug('systemTimeAnalysis node invoked');
-  const responseMessage = await genericAnalysis(state);
-  return { responses: [{ ...responseMessage, node: 'systemTimeAnalysis' }] };
+const gpsNavigation = async state => {
+  console.debug('gpsNavigation node invoked');
+
+  // Read trajectories data and include as additional context for gpsNavigation analysis
+  let additionalContext = {};
+  try {
+    const { sessionId } = state;
+    const logData = getLogDataForSession(sessionId);
+    const trajectoriesData = logData?.trajectories;
+    if (trajectoriesData) {
+      additionalContext['trajectories'] = [
+        {
+          data_key: 'trajectories',
+          description: 'Summarized trajectory data',
+          rawData: trajectoriesData,
+        },
+      ];
+    } else {
+      console.debug('No trajectories data found for additional context');
+    }
+  } catch (error) {
+    console.error('Error reading log data file for trajectories:', error);
+  }
+
+  const responseMessage = await genericAnalysis(state, additionalContext);
+  return { responses: [{ ...responseMessage, node: 'gpsNavigation' }] };
 };
 
-const gpsAnalysis = async state => {
-  console.debug('gpsAnalysis node invoked');
+const controlAutopilot = async state => {
+  console.debug('controlAutopilot node invoked');
   const responseMessage = await genericAnalysis(state);
-  return { responses: [{ ...responseMessage, node: 'gpsAnalysis' }] };
+  return { responses: [{ ...responseMessage, node: 'controlAutopilot' }] };
 };
 
-const heartbeatAnalysis = async state => {
-  console.debug('heartbeatAnalysis node invoked');
+const actuatorsMotors = async state => {
+  console.debug('actuatorsMotors node invoked');
   const responseMessage = await genericAnalysis(state);
-  return { responses: [{ ...responseMessage, node: 'heartbeatAnalysis' }] };
+  return { responses: [{ ...responseMessage, node: 'actuatorsMotors' }] };
 };
 
-const attitudeAnalysis = async state => {
-  console.debug('attitudeAnalysis node invoked');
+const airEnvironment = async state => {
+  console.debug('airEnvironment node invoked');
   const responseMessage = await genericAnalysis(state);
-  return { responses: [{ ...responseMessage, node: 'attitudeAnalysis' }] };
+  return { responses: [{ ...responseMessage, node: 'airEnvironment' }] };
 };
 
-const paramValueAnalysis = async state => {
-  console.debug('paramValueAnalysis node invoked');
+const simulationSitl = async state => {
+  console.debug('simulationSitl node invoked');
   const responseMessage = await genericAnalysis(state);
-  return { responses: [{ ...responseMessage, node: 'paramValueAnalysis' }] };
+  return { responses: [{ ...responseMessage, node: 'simulationSitl' }] };
 };
 
-const statusTextAnalysis = async state => {
-  console.debug('statusTextAnalysis node invoked');
+const communicationTelemetry = async state => {
+  console.debug('communicationTelemetry node invoked');
   const responseMessage = await genericAnalysis(state);
-  return { responses: [{ ...responseMessage, node: 'statusTextAnalysis' }] };
+  return { responses: [{ ...responseMessage, node: 'communicationTelemetry' }] };
+};
+
+const loggingReplay = async state => {
+  console.debug('loggingReplay node invoked');
+  const responseMessage = await genericAnalysis(state);
+  return { responses: [{ ...responseMessage, node: 'loggingReplay' }] };
+};
+
+const powerBattery = async state => {
+  console.debug('powerBattery node invoked');
+  const responseMessage = await genericAnalysis(state);
+  return { responses: [{ ...responseMessage, node: 'powerBattery' }] };
+};
+
+const camerasSensors = async state => {
+  console.debug('camerasSensors node invoked');
+  const responseMessage = await genericAnalysis(state);
+  return { responses: [{ ...responseMessage, node: 'camerasSensors' }] };
+};
+
+const safetyMisc = async state => {
+  console.debug('safetyMisc node invoked');
+  const responseMessage = await genericAnalysis(state);
+  return { responses: [{ ...responseMessage, node: 'safetyMisc' }] };
 };
 
 /* Edges */
@@ -117,8 +183,8 @@ const statusTextAnalysis = async state => {
 const routeOrchestratorOutput = async state => {
   console.debug('Routing analysis orchestrator output');
   const { messages, actions, sessionId } = state;
-  console.debug('Orchestrator actions:', actions);
   const threshold = 0.5;
+  console.debug('Orchestrator action scores:', actions);
 
   // If no actions exceed threshold, do not route any analyses
   let anyActionAboveThreshold = false;
@@ -132,15 +198,6 @@ const routeOrchestratorOutput = async state => {
     return {};
   }
 
-  // Read log file data from disk storage
-  let fullLogData;
-  try {
-    fullLogData = getLogDataForSession(sessionId);
-  } catch (error) {
-    console.error('Error reading log file:', error);
-    return {};
-  }
-
   // Read log stats file data from disk storage
   let fullLogStats;
   try {
@@ -150,78 +207,34 @@ const routeOrchestratorOutput = async state => {
     return {};
   }
 
-  // Route all actions above threshold, prepare relevant log data and documentation
-  // TODO: DRY this up
+  const availableMessageGroups = [];
+  for (const group of Object.keys(fullLogStats)) {
+    // GPS data is always available
+    if (group === 'gpsNavigation') {
+      availableMessageGroups.push(group);
+      continue;
+    }
+    // check if group has any non-empty message types
+    const messageTypes = Object.keys(fullLogStats[group]);
+    let hasNonEmptyTypes = false;
+    for (const messageType of messageTypes) {
+      if (fullLogStats[group][messageType].length > 0) {
+        hasNonEmptyTypes = true;
+        break;
+      }
+    }
+    if (hasNonEmptyTypes) {
+      availableMessageGroups.push(group);
+    }
+  }
+  console.debug('Available message groups in log data:', availableMessageGroups);
+
+  // Route all actions above threshold and available in log data
+  // include preprocessed log stats and docs as context
   return Object.entries(actions).reduce((sends, [action, score]) => {
-    if (score >= threshold) {
-      if (action === 'trajectoriesAnalysis') {
-        const logData = {
-          ...fullLogData?.trajectories,
-        };
-        const logStats = fullLogStats?.trajectories;
-        const logDocs = getTrajectoriesDocumentation();
-        sends.push(new Send('trajectoriesAnalysis', { messages, logData, logDocs, logStats }));
-      }
-      if (action === 'systemTimeAnalysis') {
-        const logData = {
-          ...fullLogData?.messages?.SYSTEM_TIME,
-        };
-        const logStats = fullLogStats?.SYSTEM_TIME;
-        const logDocs = getSystemTimeDocumentation();
-        sends.push(new Send('systemTimeAnalysis', { messages, logData, logDocs, logStats }));
-      }
-      if (action === 'gpsAnalysis') {
-        const logData = {
-          ...fullLogData?.messages?.GLOBAL_POSITION_INT,
-          ...fullLogData?.messages?.GPS_RAW_INT,
-        };
-        const logStats = {
-          ...fullLogStats?.GPS_RAW_INT,
-          ...fullLogStats?.GLOBAL_POSITION_INT,
-        };
-        const logDocs = getGpsDocumentation();
-        sends.push(new Send('gpsAnalysis', { messages, logData, logDocs, logStats }));
-      }
-      if (action === 'heartbeatAnalysis') {
-        const logData = {
-          ...fullLogData?.messages?.HEARTBEAT,
-        };
-        const logStats = fullLogStats?.HEARTBEAT;
-        const logDocs = getHeartbeatDocumentation();
-        sends.push(new Send('heartbeatAnalysis', { messages, logData, logDocs, logStats }));
-      }
-      if (action === 'attitudeAnalysis') {
-        const logData = {
-          ...fullLogData?.messages?.ATTITUDE,
-          ...fullLogData?.messages?.AHRS,
-          ...fullLogData?.messages?.AHRS2,
-          ...fullLogData?.messages?.AHRS3,
-        };
-        const logStats = {
-          ...fullLogStats?.ATTITUDE,
-          ...fullLogStats?.AHRS,
-          ...fullLogStats?.AHRS2,
-          ...fullLogStats?.AHRS3,
-        };
-        const logDocs = getAttitudeDocumentation();
-        sends.push(new Send('attitudeAnalysis', { messages, logData, logDocs, logStats }));
-      }
-      if (action === 'paramValueAnalysis') {
-        const logData = {
-          ...fullLogData?.messages?.PARAM_VALUE,
-        };
-        const logStats = fullLogStats?.PARAM_VALUE;
-        const logDocs = getParamValueDocumentation();
-        sends.push(new Send('paramValueAnalysis', { messages, logData, logDocs, logStats }));
-      }
-      if (action === 'statusTextAnalysis') {
-        const logData = {
-          ...fullLogData?.messages?.STATUSTEXT,
-        };
-        const logStats = fullLogStats?.STATUSTEXT;
-        const logDocs = getStatusTextDocumentation();
-        sends.push(new Send('statusTextAnalysis', { messages, logData, logDocs, logStats }));
-      }
+    if (score >= threshold && availableMessageGroups.includes(action)) {
+      const logContext = fullLogStats?.[action] || {};
+      sends.push(new Send(action, { messages, logContext, sessionId }));
     }
     return sends;
   }, []);
@@ -229,21 +242,29 @@ const routeOrchestratorOutput = async state => {
 
 const workflow = new StateGraph(LogAnalysisStateAnnotation)
   .addNode('logAnalysisOrchestrator', logAnalysisOrchestrator)
-  .addNode('trajectoriesAnalysis', trajectoriesAnalysis)
-  .addNode('systemTimeAnalysis', systemTimeAnalysis)
-  .addNode('gpsAnalysis', gpsAnalysis)
-  .addNode('heartbeatAnalysis', heartbeatAnalysis)
-  .addNode('attitudeAnalysis', attitudeAnalysis)
-  .addNode('paramValueAnalysis', paramValueAnalysis)
-  .addNode('statusTextAnalysis', statusTextAnalysis)
+  .addNode('inertialMotion', inertialMotion)
+  .addNode('gpsNavigation', gpsNavigation)
+  .addNode('controlAutopilot', controlAutopilot)
+  .addNode('actuatorsMotors', actuatorsMotors)
+  .addNode('airEnvironment', airEnvironment)
+  .addNode('simulationSitl', simulationSitl)
+  .addNode('communicationTelemetry', communicationTelemetry)
+  .addNode('loggingReplay', loggingReplay)
+  .addNode('powerBattery', powerBattery)
+  .addNode('camerasSensors', camerasSensors)
+  .addNode('safetyMisc', safetyMisc)
   .addEdge(START, 'logAnalysisOrchestrator')
   .addConditionalEdges('logAnalysisOrchestrator', routeOrchestratorOutput)
-  .addEdge('trajectoriesAnalysis', END)
-  .addEdge('systemTimeAnalysis', END)
-  .addEdge('gpsAnalysis', END)
-  .addEdge('heartbeatAnalysis', END)
-  .addEdge('attitudeAnalysis', END)
-  .addEdge('paramValueAnalysis', END)
-  .addEdge('statusTextAnalysis', END);
+  .addEdge('inertialMotion', END)
+  .addEdge('gpsNavigation', END)
+  .addEdge('controlAutopilot', END)
+  .addEdge('actuatorsMotors', END)
+  .addEdge('airEnvironment', END)
+  .addEdge('simulationSitl', END)
+  .addEdge('communicationTelemetry', END)
+  .addEdge('loggingReplay', END)
+  .addEdge('powerBattery', END)
+  .addEdge('camerasSensors', END)
+  .addEdge('safetyMisc', END);
 
 export const graph = workflow.compile();
