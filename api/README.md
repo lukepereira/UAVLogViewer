@@ -95,7 +95,7 @@ Dataflash (`*.bin`) stats and context snippet
             "r2": 0.07528450437386824
           }
         },
-        "rawData": "ommitted"
+        "rawData": <ommitted>
       }
     ]
   }
@@ -126,7 +126,7 @@ Telemetry (`*.tlog`) stats and context snippet
             "r2": 0.10018632499952063
           }
         },
-        "rawData": "omitted"
+        "rawData": <omitted>
       }
     ]
   }
