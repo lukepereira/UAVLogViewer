@@ -2,31 +2,34 @@
 
 ## Getting started
 
--   Follow `Build Setup` below to start serving the UI
--   In a seperate terminal, start the API: `cd api && npm start`
--   Open chatbot from widgets:
+-   Follow [Build Setup](#build-setup) below to start serving the UI
+-   In a seperate terminal
+    -   Change directory to the API folder: `cd api`
+    -   Init .env file with your OAI token: `cp .env.example .env`
+    -   Start the API: `npm start`
+-   View the UI at http://localhost:8080 and open the chatbot widget
     -   Load flight log data
     -   Click (...) to show widgets
-    -   Click 'AI assistant' widget
+    -   Click the 'AI assistant' widget
 
 ## Feature overview
 
 -   After uploading a UAV flight log or loading the sample:
     -   A stable sessionId is generated based on a hash of the log data
     -   Log data is uploaded as a multipart/form-data file to the server using the sessionId in the filename. See [log documentation](./api/src/handlers/agent/prompts/logDocumentation.js) for details on the available data fields
-    -   Both Telemetry `*.tlog` log files and Dataflash `*.bin` files are supported and can be analyzed.
-    -   After storing log data, a pre-processing step is triggered to collect statistical info and relevant documentation for the log file and saved to the server asynchronously after receiving a log file. All available numerical series in the flight log data are analyzed using `simple-statistics`. Descriptional statistics include count, mean, std, min, median, max, and variance. When an associated time data is parsed, time-series statistics included are slope (regression.m), intercept (regression.b) and r2.
--   On the UI, after clicking the chat widget, a [deep-chat](https://deepchat.dev) interface is opened with a connection to the API using the current sessionId
+    -   Both Telemetry files (`*.tlog`) and Dataflash files (`*.bin`) are supported and can be analyzed by the chat
+    -   After storing log data in disk storage, an async pre-processing step is triggered to collect statistical info and relevant documentation for the log file which is also saved to disk. All available numerical series in the flight log data are analyzed using [simple-statistics](https://simple-statistics.github.io/). Descriptional statistics include count, mean, std, min, median, max, and variance. When associated time data is parsed, time-series statistics included are slope (regression.m), intercept (regression.b) and r2.
+-   On the UI, after clicking the chat widget, a [deep-chat](https://deepchat.dev) interface is rendered with a connection to the API using the current sessionId
 -   Chat functionality includes:
-    -   Flight log analysis: Depending on the user query, the chat workflow identifies relevant subparts in the available log data to analyze. It uses a MapReduce-like workflow to dispatch subagents to generate answers for each subpart, each using the minimal sufficent context composed of relevant log data subparts, their documentation, and their precomputed statistics. Responses from subagents are then synthesized into a final response and returned to the user.
-    -   Query types: This workflow is designed to very simple while generalizing to both narrow queries (e.g. examining only one or two subparts of a log file) as well as high-level queries like anomaly detection (e.g. examining all subparts of the logfile).
-    -   Follow up question or clarification: After synthesizing a response, a relevant follow-up question to explore the data more or to further clarifiy the user's intent is appended to the output.
-    -   Help: Users can also ask questions about the chat functionality or the flight data schema, which is answered with documentation dynamically added to the prompt.
+    -   Flight log analysis: Depending on the user query, the chat workflow identifies relevant subparts in the available log data to analyze. It uses a MapReduce-like workflow to dispatch subagents to generate answers for groups of similar subparts of the log data. Each subagent aims to use the minimal sufficent context composed of relevant log data subparts, their precomputed statistics, and their documentation. Responses from subagents are then synthesized into a final response and returned to the user.
+    -   Query types: This workflow is designed to be simple while also capable of generalizing to answer both narrow queries (e.g. examining only one or two subparts of a log file) as well as high-level queries like anomaly detection (e.g. examining all subparts of the logfile).
+    -   Follow up question or clarification: After synthesizing a response, a relevant follow-up question to explore the data in more depth or to clarifiy the user's intent is appended to the output.
+    -   Help: Users can also ask questions about the chat functionality or the flight log data schema, which is answered using documentation dynamically added to the context.
     -   Out-of-domain questions: Indirect questions outside of the domain of flight log data analyses or documentation can still be answered, but will have a disclaimer string `[LLM: verify]` appended to the response.
 
 ## Chat agent workflow
 
-The chat workflow uses [langgraph](https://www.langchain.com/langgraph) to manage agent orchestration. Currently `gpt-4.1-mini` is being used throughout, but tradeoffs can be made for using better reasoning models with slower responses if desired.
+The chat workflow uses [langgraph](https://www.langchain.com/langgraph) to manage agent orchestration. Currently `gpt-4.1-mini` is being used throughout, but tradeoffs can be made for using better, more expensive reasoning models with slower responses if desired.
 
 The top-level graph in the chat workflow follows an [orchestrator-worker pattern](https://docs.langchain.com/oss/python/langgraph/workflows-agents#orchestrator-worker) with an additional step to add a follow up question.
 
@@ -41,9 +44,9 @@ The top-level orchestrator returns a [structured output](https://docs.langchain.
 
 ![Workflow: simple diagram](./api/agent_workflow.png "Workflow: simple diagram")
 
-The nested `logAnalysis` subgraph follows a [routing pattern](https://docs.langchain.com/oss/python/langgraph/workflows-agents#routing) to dynamically process relevant parts of the log data in parallel.
+The nested `logAnalysis` subgraph follows a [routing pattern](https://docs.langchain.com/oss/python/langgraph/workflows-agents#routing) to dynamically process relevant and available subparts of the log data in parallel.
 
-The nested `logAnalysis` orchestrator returns a [structured output](https://docs.langchain.com/oss/javascript/langchain/structured-output#structured-output) following a schema that containing a relevancy score between 0-1 to conditionally determine which nodes to invoke:
+The nested `logAnalysis` orchestrator returns a [structured output](https://docs.langchain.com/oss/javascript/langchain/structured-output#structured-output) following a schema that containing a relevancy score between 0-1 to conditionally determine which nodes to invoke (provided they have data available to analyse):
 
 ```
 {
@@ -63,11 +66,11 @@ The nested `logAnalysis` orchestrator returns a [structured output](https://docs
 
 ![Workflow: full diagram](./api/agent_workflow_xray.png "Workflow: full diagram")
 
-(Blurry png seems to be a known limitation with the nodejs langgraph package)
+(Blurry png seems to be a known issue with the typescript langgraph package)
 
 ## Example of pre-processed stats and context
 
-`*.bin` stats and context data snippet
+Dataflash (`*.bin`) stats and context snippet
 
 ```json
 {
@@ -98,7 +101,7 @@ The nested `logAnalysis` orchestrator returns a [structured output](https://docs
 }
 ```
 
-`*.tlog` stats and context data snippet
+Telemetry (`*.tlog`) stats and context snippet
 
 ```json
 {
@@ -132,15 +135,15 @@ The nested `logAnalysis` orchestrator returns a [structured output](https://docs
 ## Future work
 
 -   Feature idea:
-    -   Analyze if flight data violates flight regulation rules/codes
-    -   Persist chat and include 'clear' button
--   N2H Improvements:
+    -   Analyze if flight data violates flight regulation rules/codes, e.g. flying in restricted areas or exceeding altitude, speed, or distance limits set by aviation authorities
+    -   Persist chat, include 'clear' button, suggest random queries
+    -   Add more sophisticated time series statistical analysis
+    -   Provide specific expected/abnormal values for different data types in prompts to better detect anomalies
+-   Improvements:
     -   Add unit tests and E2E tests
     -   Validate log data during processing
-    -   Delete log data after some retention period, consider storing in database
     -   Fix security issues from adding new packages to repo with outdated dependencies
-    -   Add more sophisticated time series statistical analysis
-    -   Provide specific expected/abnormal values for different data types in prompts
+    -   Delete log data after some retention period, consider storing in database
 
 ---
 

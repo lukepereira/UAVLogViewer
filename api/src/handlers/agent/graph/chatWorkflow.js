@@ -1,7 +1,7 @@
 import { END, START, StateGraph, Send } from '@langchain/langgraph';
 import { getLLMClient } from '../../../clients/langgraph.js';
 import { ChatAgentStateAnnotation, ChatOrchestratorAnnotation } from '../state.js';
-import { getMessagesString } from '../utils.js';
+import { getMessagesString } from '../utils/analysisUtils.js';
 import { graph as logAnalysisGraph } from './logAnalysis.js';
 import {
   getChatOrchestratorPrompt,
@@ -77,7 +77,7 @@ const synthesizeResponse = async state => {
     console.debug('Only one response, skipping synthesis.');
     return { responses: [{ ...responses[0], node: 'synthesizeResponse' }] };
   }
-
+  // Prepare prompt for synthesizing multiple responses
   const formattedMessages = getMessagesString(messages);
   const formattedResponses = responses.map(response => response.content).join('\n');
   const synthesisPrompt = getWorkflowSynthesisPrompt(formattedMessages, formattedResponses);
@@ -117,7 +117,7 @@ const generateFollowUp = async state => {
   const model = await getLLMClient('gpt-4.1-mini');
   const responseMessage = await model.invoke(followUpMessages);
 
-  // Concatenate helpResponse, synthesizedResponse and follow-up into single message
+  // Concatenate helpResponse, synthesizedResponse, and follow-up into single message
   let content = '';
   if (helpResponse && helpResponse.trim().length > 0) {
     content += helpResponse + '\n\n';
@@ -180,5 +180,5 @@ const workflow = new StateGraph(ChatAgentStateAnnotation)
 export const graph = workflow.compile();
 
 // Uncomment to save graph image
-// import { saveGraphImage } from "../utils.js";
+// import { saveGraphImage } from "../utils/saveGraphImg.js";
 // saveGraphImage(graph, './agent_workflow.png');

@@ -212,7 +212,7 @@ export default {
 
             if (
                 this.state.trajectories && Object.keys(this.state.trajectories).length > 0 &&
-                this.state.messages !== null && Object.keys(this.state.messages).length > 0
+                this.state.messages && Object.keys(this.state.messages).length > 0
             ) {
                 const logData = {
                     logType: this.state.logType,
@@ -251,7 +251,7 @@ export default {
             const hashArray = Array.from(new Uint8Array(hashBuffer))
             const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
             this.state.sessionIdentifier = hash
-            console.log('🆔 AI Chat Identifier set to:', this.state.sessionIdentifier)
+            console.log('AI Chat Identifier set to:', this.state.sessionIdentifier)
         },
 
         async uploadLogData (logData) {

@@ -14,14 +14,8 @@ export class LogManager {
       console.debug('No files uploaded');
       return res.status(400).json({ error: 'No file uploaded' });
     }
+    console.debug('Files:', req.files);
 
-    // Files are stored inside a form using Deep Chat request FormData format:
-    // https://deepchat.dev/docs/connect
-    if (req.files) {
-      console.debug('Files:', req.files);
-    }
-    // Sends response back to Deep Chat using the Response format:
-    // https://deepchat.dev/docs/connect/#Response
     res.status(200).json({ status: 'Files received successfully' });
 
     // Process the uploaded log file in the background
@@ -120,7 +114,7 @@ export class LogManager {
       rawData = Object.values(messageFieldData);
     }
 
-    // If data repeats itself, only return unique value to reduce size
+    // If data repeats itself, only return unique value to reduce context size
     if (Array.isArray(rawData)) {
       const uniqueData = Array.from(new Set(rawData));
       if (uniqueData.length < rawData.length) {
@@ -154,13 +148,11 @@ export class LogManager {
   }
 
   static async preProcessLog(filepath) {
-    // Placeholder for any preprocessing steps if needed in the future
     console.debug(`Preprocessing log file at ${filepath}`);
     // Read log file JSON from disk storage
     if (!filepath) {
       throw new Error(`No filename provided.`);
     }
-    // Check if file exists
     const filePath = path.resolve(filepath);
     if (!fs.existsSync(filePath)) {
       throw new Error(`File not found: ${filePath}`);
@@ -172,8 +164,8 @@ export class LogManager {
       throw new Error(`Unsupported log type: ${logType}`);
     }
 
+    // Generate log stats for each message type and field
     const logStats = {};
-
     for (const [groupName, groupInfo] of Object.entries(logDataMessageGroups)) {
       const validMessages = logType === 'tlog' ? groupInfo.tlog : groupInfo.bin;
       if (!validMessages) continue;
@@ -200,7 +192,7 @@ export class LogManager {
       }
     }
 
-    // Save stats and doc contexts as JSON files
+    // Save stats and relevant documentation contexts as JSON files
     const statsFilename = `stats_${path.basename(filepath)}`;
     const statsFilePath = path.resolve(path.dirname(filepath), statsFilename);
     fs.writeFileSync(statsFilePath, JSON.stringify(logStats, null, 2), 'utf-8');
