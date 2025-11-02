@@ -1,7 +1,11 @@
 import { END, START, StateGraph, Send } from '@langchain/langgraph';
 import { getLLMClient } from '../../../clients/langgraph.js';
 import { LogAnalysisStateAnnotation, LogAnalysisAnnotation } from '../state.js';
-import { getMessagesString, getLogStatsForSession, getLogDataForSession } from '../utils.js';
+import {
+  getMessagesString,
+  getLogStatsForSession,
+  getLogDataForSession,
+} from '../utils/analysisUtils.js';
 import { getAnalysisOrchestratorPrompt, getLogAnalysisPrompt } from '../prompts/logAnalysis.js';
 
 /* Nodes */

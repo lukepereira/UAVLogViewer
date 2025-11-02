@@ -1,5 +1,6 @@
-// Script to scrape docs: https://ardupilot.org/plane/docs/logmessages.html
-// Docs are no longer accessible from the wiki github
+// Reference script to scrape docs (Not actually called in API code)
+// https://ardupilot.org/plane/docs/logmessages.html
+// Note: Docs are not accessible through github for wiki
 
 const sections = document.querySelectorAll(
   'html.writer-html5 body.wy-body-for-nav div.wy-grid-for-nav section.wy-nav-content-wrap div.wy-nav-content div.rst-content div.document div section#onboard-message-log-messages section',

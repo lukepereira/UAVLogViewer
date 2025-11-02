@@ -1,9 +1,9 @@
 import { graph as agentChat } from './graph/chatWorkflow.js';
 
 export class Agent {
+  // Text messages are stored inside request body using the Deep Chat JSON format:
+  // https://deepchat.dev/docs/connect
   static createChatBody(body, stream) {
-    // Text messages are stored inside request body using the Deep Chat JSON format:
-    // https://deepchat.dev/docs/connect
     const chatBody = {
       messages: body.messages.map(message => {
         return { role: message.role === 'ai' ? 'assistant' : message.role, content: message.text };
@@ -46,9 +46,6 @@ export class Agent {
           if (generateFollowUp) {
             const { messages } = generateFollowUp;
             const message = messages[messages.length - 1];
-            // Sends response back to Deep Chat using the Response format:
-            // https://deepchat.dev/docs/connect/#Response
-            // res.write(JSON.stringify({text: message?.content}) + "\n");
             res.json({ text: message?.content });
           }
         }

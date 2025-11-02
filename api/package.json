@@ -1,7 +1,7 @@
 {
   "name": "tlogviewer-api",
   "version": "1.0.0",
-  "description": "API for mavlink telemetry logs",
+  "description": "API for UAV telemetry and dataflash logs",
   "main": "server.js",
   "type": "module",
   "scripts": {
