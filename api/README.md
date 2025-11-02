@@ -17,7 +17,7 @@
 
 - After uploading a UAV flight log or loading the sample:
   - A stable sessionId is generated based on a hash of the log data
-  - Log data is uploaded as a multipart/form-data file to the server using the sessionId in the filename. See [log documentation](./api/src/handlers/agent/prompts/logDocumentation.js) for details on the available data fields
+  - Log data is uploaded as a multipart/form-data file to the server using the sessionId in the filename. See [log documentation](./src/handlers/agent/prompts/logDocumentation.js) for details on the available data fields
   - Both Telemetry files (`*.tlog`) and Dataflash files (`*.bin`) are supported and can be analyzed by the chat
   - After storing log data in disk storage, an async pre-processing step is triggered to collect statistical info and relevant documentation for the log file which is also saved to disk. All available numerical series in the flight log data are analyzed using [simple-statistics](https://simple-statistics.github.io/). Descriptional statistics include count, mean, std, min, median, max, and variance. When associated time data is parsed, time-series statistics included are slope (regression.m), intercept (regression.b) and r2.
 - On the UI, after clicking the chat widget, a [deep-chat](https://deepchat.dev) interface is rendered with a connection to the API using the current sessionId
