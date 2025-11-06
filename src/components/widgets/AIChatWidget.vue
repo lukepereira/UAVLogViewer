@@ -20,6 +20,10 @@
                 <div class="chat-container">
                     <deep-chat
                         :history.prop="history"
+                        requestBodyLimits='{
+                            "maxMessages": 5,
+                            "totalMessagesMaxCharLength": 5000
+                        }'
                         :connect.prop="{
                             url: 'http://localhost:3000/chat',
                             method: 'POST',

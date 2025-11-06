@@ -31,10 +31,6 @@ const logAnalysisOrchestrator = async state => {
       role: 'system',
       content: orchestratorPrompt,
     },
-    {
-      role: 'user',
-      content: messagesString,
-    },
   ];
 
   // Get structured orchestrator scores from LLM
@@ -49,17 +45,6 @@ const genericAnalysis = async (state, additionalContext = undefined) => {
   const { messages, logContext } = state;
   const formattedMessages = getMessagesString(messages);
 
-  // Truncate raw data fields from log context to reduce size
-  const maxRawDataSize = 8000;
-  for (const messageType of Object.keys(logContext)) {
-    for (const item of logContext[messageType]) {
-      if (item.rawData) {
-        if (item.rawData.length > maxRawDataSize) {
-          item.rawData = item.rawData.slice(0, maxRawDataSize) + '\n... [truncated due to size]';
-        }
-      }
-    }
-  }
   // If additionalContext is provided, merge it into logContext
   if (additionalContext) {
     for (const messageType of Object.keys(additionalContext)) {
