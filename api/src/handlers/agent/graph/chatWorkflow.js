@@ -78,8 +78,9 @@ const synthesizeResponse = async state => {
     return { responses: [{ ...responses[0], node: 'synthesizeResponse' }] };
   }
   // Prepare prompt for synthesizing multiple responses
-  const formattedMessages = getMessagesString(messages);
+  const formattedMessages = getMessagesString(messages[messages?.length - 1] ? [messages[messages.length - 1]] : []);
   const formattedResponses = responses.map(response => response.content).join('\n');
+
   const synthesisPrompt = getWorkflowSynthesisPrompt(formattedMessages, formattedResponses);
   const synthesisMessages = [
     {
@@ -100,13 +101,9 @@ const generateFollowUp = async state => {
     .filter(response => response.node === 'synthesizeResponse')
     .map(response => response.content)
     .join(' ');
-  const helpResponse = responses
-    .filter(response => response.node === 'chatOrHelp')
-    .map(response => response.content)
-    .join(' ');
 
-  // Generate follow up using both synthesizedResponse and helpResponse
-  const followUpPrompt = getFollowUpPrompt(formattedMessages, synthesizedResponse, helpResponse);
+  // Generate follow up using synthesizedResponse
+  const followUpPrompt = getFollowUpPrompt(formattedMessages, synthesizedResponse);
 
   const followUpMessages = [
     {
@@ -119,9 +116,6 @@ const generateFollowUp = async state => {
 
   // Concatenate helpResponse, synthesizedResponse, and follow-up into single message
   let content = '';
-  if (helpResponse && helpResponse.trim().length > 0) {
-    content += helpResponse + '\n\n';
-  }
   if (synthesizedResponse && synthesizedResponse.trim().length > 0) {
     content += synthesizedResponse + '\n\n';
   }
@@ -171,9 +165,9 @@ const workflow = new StateGraph(ChatAgentStateAnnotation)
   .addNode('synthesizeResponse', synthesizeResponse)
   .addNode('generateFollowUp', generateFollowUp)
   .addEdge(START, 'orchestrator')
-  .addConditionalEdges('orchestrator', routeOrchestratorOutput)
+  .addConditionalEdges('orchestrator', routeOrchestratorOutput, ['logAnalysis', 'chatOrHelp'])
   .addEdge('logAnalysis', 'synthesizeResponse')
-  .addEdge('chatOrHelp', 'generateFollowUp')
+  .addEdge('chatOrHelp', 'synthesizeResponse')
   .addEdge('synthesizeResponse', 'generateFollowUp')
   .addEdge('generateFollowUp', END);
 

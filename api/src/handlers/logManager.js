@@ -45,8 +45,9 @@ export class LogManager {
       min: ss.min(rawSeries),
       max: ss.max(rawSeries),
       median: ss.median(rawSeries),
-      q25: ss.quantile(rawSeries, 0.25),
+      q50: ss.quantile(rawSeries, 0.5),
       q75: ss.quantile(rawSeries, 0.75),
+      q99: ss.quantile(rawSeries, 0.99),
     };
 
     if (!timeBootMsData) {
@@ -123,6 +124,14 @@ export class LogManager {
       }
     }
 
+    const serializeAndTruncate = (rawData, maxRawDataSize = 8000) => {
+      let rawDataStr = Array.isArray(rawData) ? JSON.stringify(rawData) : String(rawData);
+      if (rawDataStr.length > maxRawDataSize) {
+        return rawDataStr.slice(0, maxRawDataSize) + '\n... [truncated due to size]';
+      }
+      return rawDataStr;
+    };
+
     // if timeBootMsData is provided, merge it with messageFieldData for time context
     if (timeBootMsData) {
       let timeBootMsArray = timeBootMsData;
@@ -131,20 +140,20 @@ export class LogManager {
       }
       if (!Array.isArray(timeBootMsArray)) {
         console.debug('timeBootMsData is not an array');
-        return rawData;
+        return serializeAndTruncate(rawData);
       }
       if (timeBootMsArray.length !== rawData.length) {
         console.debug('timeBootMsData length does not match messageFieldData length');
-        return rawData;
+        return serializeAndTruncate(rawData);
       }
 
       const combinedData = rawData.map((value, index) => {
         return [`${timeBootMsArray[index]}ms`, value];
       });
-      return combinedData;
+      return serializeAndTruncate(combinedData);
     }
 
-    return rawData;
+    return serializeAndTruncate(rawData);
   }
 
   static async preProcessLog(filepath) {
